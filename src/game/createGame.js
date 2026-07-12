@@ -29,6 +29,7 @@ class MainTown extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, 1600, 900);
     this.cameras.main.setBounds(0, 0, 1600, 900);
     this.blockers = this.physics.add.staticGroup();
+    this.generateTerrainTextures();
     this.drawWorld();
     this.createPlaces();
     this.createNpc();
@@ -43,6 +44,33 @@ class MainTown extends Phaser.Scene {
       backgroundColor: '#332417', padding: { x: 18, y: 10 },
       stroke: '#f0bd58', strokeThickness: 2,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(200).setVisible(false);
+  }
+
+  generateTerrainTextures() {
+    const grass = this.make.graphics({ add: false });
+    grass.fillStyle(0x76b85e).fillRect(0, 0, 64, 64);
+    grass.fillStyle(0x8ac86d);
+    [[8,12],[28,8],[51,19],[17,43],[42,50]].forEach(([x,y]) => grass.fillRect(x,y,3,8));
+    grass.fillStyle(0x5c9e4c);
+    [[12,22],[36,31],[55,47]].forEach(([x,y]) => grass.fillTriangle(x,y,x-4,y+8,x+4,y+8));
+    grass.generateTexture('grass-tile', 64, 64);
+
+    const path = this.make.graphics({ add: false });
+    path.fillStyle(0xd4b273).fillRect(0, 0, 64, 64);
+    path.fillStyle(0xb58d55);
+    [[8,11,8,4],[34,18,12,5],[16,39,10,4],[47,48,9,4]].forEach(([x,y,w,h]) => path.fillRoundedRect(x,y,w,h,2));
+    path.fillStyle(0xe2c58b);
+    [[5,30],[29,52],[53,8]].forEach(([x,y]) => path.fillCircle(x,y,3));
+    path.generateTexture('path-tile', 64, 64);
+
+    const water = this.make.graphics({ add: false });
+    water.fillStyle(0x62b8d0).fillRect(0, 0, 64, 64);
+    water.lineStyle(3, 0x9edbe5, 0.9);
+    water.beginPath(); water.moveTo(4,16); water.lineTo(24,16); water.lineTo(31,12); water.strokePath();
+    water.beginPath(); water.moveTo(30,42); water.lineTo(52,42); water.lineTo(60,38); water.strokePath();
+    water.lineStyle(2, 0x3c8dad, 0.8);
+    water.beginPath(); water.moveTo(8,55); water.lineTo(28,55); water.strokePath();
+    water.generateTexture('water-tile', 64, 64);
   }
 
   addBlocker(x, y, w, h) {
@@ -68,48 +96,61 @@ class MainTown extends Phaser.Scene {
       this.tweens.add({ targets: cloud, x: cloud.x + 95, duration: 13000 + i * 500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
 
-    this.add.rectangle(800, 650, 1600, 520, 0x77bb61);
-    for (let i = 0; i < 24; i += 1) {
-      this.add.rectangle(20 + i * 72, 420 + (i % 2) * 12, 48, 165, i % 2 ? 0x9dcc55 : 0xb2d863).setAlpha(0.42);
-    }
+    this.add.tileSprite(800, 650, 1600, 520, 'grass-tile');
+    this.add.tileSprite(800, 600, 220, 600, 'path-tile').setDepth(2);
+    this.add.tileSprite(800, 610, 1150, 175, 'path-tile').setDepth(2);
 
-    const road = this.add.graphics();
-    road.fillStyle(0xd6b474, 1);
-    road.fillRoundedRect(690, 300, 220, 595, 70);
-    road.fillRoundedRect(230, 525, 1150, 175, 70);
-    road.lineStyle(3, 0xb28e5a, 0.45);
-    for (let y = 330; y < 875; y += 38) road.lineBetween(725, y, 875, y + 5);
-
-    this.add.ellipse(1390, 735, 390, 255, 0x3f89ab).setStrokeStyle(15, 0x4c7d53);
-    this.add.ellipse(1390, 730, 330, 205, 0x65bed2);
+    this.water = this.add.tileSprite(1390, 735, 390, 255, 'water-tile').setDepth(3);
+    const waterMaskShape = this.make.graphics({ add: false });
+    waterMaskShape.fillStyle(0xffffff).fillEllipse(1390, 735, 390, 255);
+    this.water.setMask(waterMaskShape.createGeometryMask());
+    this.add.ellipse(1390, 735, 390, 255, 0x000000, 0).setStrokeStyle(15, 0x4c7d53).setDepth(4);
     for (let i = 0; i < 14; i += 1) {
-      this.add.ellipse(1260 + (i * 43) % 270, 670 + (i * 31) % 120, 28, 12, 0x4d9850).setAngle((i % 3) * 25);
+      this.add.ellipse(1260 + (i * 43) % 270, 670 + (i * 31) % 120, 28, 12, 0x4d9850).setAngle((i % 3) * 25).setDepth(5);
     }
-    this.add.text(1390, 842, 'หนองน้ำ', { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5);
+    this.add.text(1390, 842, 'หนองน้ำ', { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5).setDepth(6);
     this.addBlocker(1390, 735, 390, 255);
 
     this.drawFlag(800, 430);
     this.drawTrees();
     this.drawDecorations();
+    this.createAmbientLife();
+  }
+
+  createAmbientLife() {
+    for (let i = 0; i < 5; i += 1) {
+      const shadow = this.add.ellipse(-200 - i * 180, 430 + i * 75, 210, 75, 0x355f42, 0.12).setDepth(7);
+      this.tweens.add({ targets: shadow, x: 1800, duration: 24000 + i * 3500, repeat: -1, delay: i * 2500 });
+    }
+    for (let i = 0; i < 8; i += 1) {
+      const butterfly = this.add.container(280 + (i * 173) % 1050, 410 + (i * 91) % 360).setDepth(45);
+      const left = this.add.ellipse(-5, 0, 10, 7, i % 2 ? 0xf6cf53 : 0xf18cc2);
+      const right = this.add.ellipse(5, 0, 10, 7, i % 2 ? 0xf6cf53 : 0xf18cc2);
+      butterfly.add([left, right]);
+      this.tweens.add({ targets: [left, right], scaleX: 0.25, duration: 170, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: butterfly, x: butterfly.x + 55, y: butterfly.y - 35, duration: 3200 + i * 220, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
   }
 
   drawFlag(x, y) {
     this.add.ellipse(x, y + 80, 115, 36, 0x5a8a45, 0.7);
     this.add.rectangle(x, y, 10, 210, 0x686868);
-    this.add.rectangle(x + 42, y - 78, 78, 18, 0xd83438).setOrigin(0.5);
-    this.add.rectangle(x + 42, y - 60, 78, 12, 0xffffff).setOrigin(0.5);
-    this.add.rectangle(x + 42, y - 45, 78, 18, 0x3152a4).setOrigin(0.5);
+    const red = this.add.rectangle(x + 42, y - 78, 78, 18, 0xd83438).setOrigin(0.5);
+    const white = this.add.rectangle(x + 42, y - 60, 78, 12, 0xffffff).setOrigin(0.5);
+    const blue = this.add.rectangle(x + 42, y - 45, 78, 18, 0x3152a4).setOrigin(0.5);
+    this.tweens.add({ targets: [red, white, blue], scaleX: 0.94, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
   }
 
   drawTrees() {
-    [[90,430,0.92],[180,475,0.75],[390,430,0.82],[1450,425,0.95],[1530,550,0.78],[70,735,0.9],[355,820,0.74],[1030,825,0.82],[1515,835,0.85]].forEach(([x,y,s]) => {
-      this.add.image(x, y, 'tree').setScale(s).setDepth(8);
+    [[90,430,0.92],[180,475,0.75],[390,430,0.82],[1450,425,0.95],[1530,550,0.78],[70,735,0.9],[355,820,0.74],[1030,825,0.82],[1515,835,0.85]].forEach(([x,y,s], index) => {
+      const tree = this.add.image(x, y, 'tree').setScale(s).setDepth(8);
+      this.tweens.add({ targets: tree, angle: index % 2 ? 1.2 : -1.2, duration: 1700 + index * 80, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       this.addBlocker(x, y + 35 * s, 56 * s, 70 * s);
     });
   }
 
   drawDecorations() {
-    for (let i = 0; i < 26; i += 1) {
+    for (let i = 0; i < 30; i += 1) {
       const x = 320 + (i * 71) % 950;
       const y = 410 + (i * 53) % 370;
       this.add.circle(x, y, 5, [0xf3d35c, 0xee7a72, 0xffffff, 0xb985d8][i % 4]).setDepth(6);
@@ -163,6 +204,7 @@ class MainTown extends Phaser.Scene {
 
   createPlayer() {
     const key = this.callbacks.player?.character === 'girl' ? 'girl' : 'boy';
+    this.playerShadow = this.add.ellipse(800, 837, 42, 15, 0x1d3a25, 0.34).setDepth(70);
     this.player = this.physics.add.sprite(800, 800, key).setScale(0.68).setDepth(80).setCollideWorldBounds(true);
     this.player.body.setSize(42, 55).setOffset(19, 60);
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
@@ -183,8 +225,15 @@ class MainTown extends Phaser.Scene {
     if (x && y) { x *= 0.707; y *= 0.707; }
     this.player.setVelocity(x, y);
     if (x !== 0) this.player.setFlipX(x < 0);
-    if (x || y) this.player.setAngle(Math.sin(this.time.now / 85) * 1.6);
-    else this.player.setAngle(0);
+    if (x || y) {
+      this.player.setAngle(Math.sin(this.time.now / 85) * 1.6);
+      this.player.setScale(0.68, 0.68 + Math.sin(this.time.now / 90) * 0.018);
+    } else {
+      this.player.setAngle(0);
+      this.player.setScale(0.68);
+    }
+    this.playerShadow.setPosition(this.player.x, this.player.y + 37);
+    this.water.tilePositionX += 0.18;
 
     const npcDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.npc.x, this.npc.y);
     let nearest = null; let distance = Infinity;
@@ -220,7 +269,7 @@ export function createGame(parent, callbacks) {
     backgroundColor: '#102a43',
     physics: { default: 'arcade', arcade: { debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    render: { antialias: true, pixelArt: false },
+    render: { antialias: false, pixelArt: true, roundPixels: true },
     scene: [new MainTown(callbacks)],
   });
 }

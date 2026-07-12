@@ -1,20 +1,28 @@
 import Phaser from 'phaser';
 
 const PLACES = [
-  { name: 'อาคารเรียน', icon: '🏫', x: 800, y: 205, w: 360, h: 170, roof: 0xb65435, wall: 0xf0d8a7, description: 'ห้องเรียน รายวิชา และกิจกรรมการเรียนรู้' },
-  { name: 'ห้องวิทยาศาสตร์', icon: '🧪', x: 270, y: 330, w: 245, h: 135, roof: 0x346d87, wall: 0xe6d4ae, description: 'การทดลองวิทยาศาสตร์และกิจกรรม STEM' },
-  { name: 'ห้องสมุด', icon: '📚', x: 1270, y: 320, w: 245, h: 135, roof: 0x397c6b, wall: 0xead7ae, description: 'หนังสือ บทเรียน และคลังใบงาน' },
-  { name: 'กระดานภารกิจ', icon: '📜', x: 500, y: 565, w: 180, h: 105, roof: 0x8a603d, wall: 0x9a6a45, description: 'ดูภารกิจประจำวันและกิจกรรมของโรงเรียน' },
-  { name: 'ร้านค้าชุมชน', icon: '🛒', x: 1120, y: 565, w: 230, h: 125, roof: 0xc85f36, wall: 0xe6b06b, description: 'ร้านแลกเหรียญ ไอเทม และของสะสม' },
-  { name: 'ศาลากลางหมู่บ้าน', icon: '🏡', x: 250, y: 650, w: 225, h: 120, roof: 0x875437, wall: 0xc89258, description: 'พื้นที่ประชุม ทำงานกลุ่ม และกิจกรรมชุมชน' },
+  { key: 'school', name: 'อาคารเรียน', icon: '🏫', x: 800, y: 205, scale: 0.86, blocker: [800, 220, 320, 130], description: 'ห้องเรียน รายวิชา และกิจกรรมการเรียนรู้' },
+  { key: 'village', name: 'ห้องวิทยาศาสตร์', icon: '🧪', x: 250, y: 350, scale: 0.82, tint: 0xc7e8ff, blocker: [250, 365, 190, 95], description: 'การทดลองวิทยาศาสตร์และกิจกรรม STEM' },
+  { key: 'village', name: 'ห้องสมุด', icon: '📚', x: 1280, y: 350, scale: 0.82, tint: 0xc5e8cf, blocker: [1280, 365, 190, 95], description: 'หนังสือ บทเรียน และคลังใบงาน' },
+  { key: 'village', name: 'ร้านค้าชุมชน', icon: '🛒', x: 1110, y: 610, scale: 0.76, tint: 0xffd09b, blocker: [1110, 625, 180, 90], description: 'ร้านแลกเหรียญ ไอเทม และของสะสม' },
+  { key: 'village', name: 'ศาลากลางหมู่บ้าน', icon: '🏡', x: 260, y: 655, scale: 0.76, tint: 0xf5d1aa, blocker: [260, 670, 180, 90], description: 'พื้นที่ประชุม ทำงานกลุ่ม และกิจกรรมชุมชน' },
 ];
 
-const COLLECTIBLES = [{ x: 620, y: 445 }, { x: 985, y: 650 }, { x: 470, y: 760 }];
+const COLLECTIBLES = [{ x: 610, y: 455 }, { x: 975, y: 690 }, { x: 470, y: 780 }];
 
 class MainTown extends Phaser.Scene {
   constructor(callbacks) {
     super('MainTown');
     this.callbacks = callbacks;
+  }
+
+  preload() {
+    this.load.svg('school', '/assets/school.svg', { width: 420, height: 250 });
+    this.load.svg('village', '/assets/village-building.svg', { width: 260, height: 190 });
+    this.load.svg('tree', '/assets/tree.svg', { width: 130, height: 170 });
+    this.load.svg('boy', '/assets/player-boy.svg', { width: 80, height: 120 });
+    this.load.svg('girl', '/assets/player-girl.svg', { width: 80, height: 120 });
+    this.load.svg('teacher', '/assets/npc-teacher.svg', { width: 86, height: 126 });
   }
 
   create() {
@@ -45,40 +53,40 @@ class MainTown extends Phaser.Scene {
 
   drawWorld() {
     this.add.rectangle(800, 450, 1600, 900, 0x9bd7ec);
-    this.add.rectangle(800, 165, 1600, 250, 0xb8e4f2);
-    this.add.triangle(180, 235, -230, 125, 0, -90, 230, 125, 0x5e8f69).setAlpha(0.8);
-    this.add.triangle(520, 235, -250, 125, 0, -105, 250, 125, 0x6e9e73).setAlpha(0.8);
-    this.add.triangle(1370, 235, -280, 135, 0, -115, 280, 135, 0x5d8665).setAlpha(0.8);
+    this.add.rectangle(800, 180, 1600, 270, 0xc2e9f4);
+    this.add.triangle(170, 260, -260, 135, 0, -110, 260, 135, 0x6b9870).setAlpha(0.9);
+    this.add.triangle(520, 260, -260, 135, 0, -120, 260, 135, 0x79a477).setAlpha(0.9);
+    this.add.triangle(1390, 260, -300, 145, 0, -125, 300, 145, 0x648b69).setAlpha(0.9);
 
-    for (let i = 0; i < 9; i += 1) {
-      const cloud = this.add.container(90 + i * 190, 75 + (i % 3) * 32);
+    for (let i = 0; i < 8; i += 1) {
+      const cloud = this.add.container(90 + i * 220, 72 + (i % 3) * 30);
       cloud.add([
-        this.add.ellipse(0, 0, 110, 34, 0xffffff, 0.78),
-        this.add.circle(-33, -8, 22, 0xffffff, 0.78),
-        this.add.circle(22, -12, 28, 0xffffff, 0.78),
+        this.add.ellipse(0, 0, 120, 36, 0xffffff, 0.8),
+        this.add.circle(-36, -8, 24, 0xffffff, 0.8),
+        this.add.circle(26, -14, 30, 0xffffff, 0.8),
       ]);
-      this.tweens.add({ targets: cloud, x: cloud.x + 90, duration: 12000 + i * 500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.tweens.add({ targets: cloud, x: cloud.x + 95, duration: 13000 + i * 500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
 
-    this.add.rectangle(800, 645, 1600, 510, 0x78bd61);
-    for (let i = 0; i < 22; i += 1) {
-      this.add.rectangle(20 + i * 76, 420 + (i % 2) * 12, 54, 160, i % 2 ? 0x93c84e : 0xa7d35e).setAlpha(0.45);
+    this.add.rectangle(800, 650, 1600, 520, 0x77bb61);
+    for (let i = 0; i < 24; i += 1) {
+      this.add.rectangle(20 + i * 72, 420 + (i % 2) * 12, 48, 165, i % 2 ? 0x9dcc55 : 0xb2d863).setAlpha(0.42);
     }
 
     const road = this.add.graphics();
-    road.fillStyle(0xd7b77a, 1);
-    road.fillRoundedRect(690, 315, 220, 580, 70);
-    road.fillRoundedRect(260, 525, 1080, 170, 70);
-    road.lineStyle(3, 0xb5915e, 0.55);
-    for (let y = 340; y < 870; y += 42) road.lineBetween(720, y, 880, y + 4);
+    road.fillStyle(0xd6b474, 1);
+    road.fillRoundedRect(690, 300, 220, 595, 70);
+    road.fillRoundedRect(230, 525, 1150, 175, 70);
+    road.lineStyle(3, 0xb28e5a, 0.45);
+    for (let y = 330; y < 875; y += 38) road.lineBetween(725, y, 875, y + 5);
 
-    this.add.ellipse(1370, 720, 390, 250, 0x3c92b7).setStrokeStyle(14, 0x467f55);
-    this.add.ellipse(1370, 715, 330, 200, 0x62bdd5);
-    for (let i = 0; i < 12; i += 1) {
-      this.add.ellipse(1240 + (i * 47) % 270, 660 + (i * 37) % 120, 28, 12, 0x4f9a50).setAngle((i % 3) * 25);
+    this.add.ellipse(1390, 735, 390, 255, 0x3f89ab).setStrokeStyle(15, 0x4c7d53);
+    this.add.ellipse(1390, 730, 330, 205, 0x65bed2);
+    for (let i = 0; i < 14; i += 1) {
+      this.add.ellipse(1260 + (i * 43) % 270, 670 + (i * 31) % 120, 28, 12, 0x4d9850).setAngle((i % 3) * 25);
     }
-    this.add.text(1365, 818, 'หนองน้ำ', { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5);
-    this.addBlocker(1370, 720, 390, 250);
+    this.add.text(1390, 842, 'หนองน้ำ', { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5);
+    this.addBlocker(1390, 735, 390, 255);
 
     this.drawFlag(800, 430);
     this.drawTrees();
@@ -87,82 +95,60 @@ class MainTown extends Phaser.Scene {
 
   drawFlag(x, y) {
     this.add.ellipse(x, y + 80, 115, 36, 0x5a8a45, 0.7);
-    this.add.rectangle(x, y, 10, 210, 0x6b6b6b);
+    this.add.rectangle(x, y, 10, 210, 0x686868);
     this.add.rectangle(x + 42, y - 78, 78, 18, 0xd83438).setOrigin(0.5);
     this.add.rectangle(x + 42, y - 60, 78, 12, 0xffffff).setOrigin(0.5);
     this.add.rectangle(x + 42, y - 45, 78, 18, 0x3152a4).setOrigin(0.5);
   }
 
-  drawTree(x, y, scale = 1) {
-    this.add.ellipse(x, y + 36 * scale, 56 * scale, 22 * scale, 0x3b6f36, 0.35).setDepth(2);
-    this.add.rectangle(x, y + 8 * scale, 15 * scale, 62 * scale, 0x765033).setDepth(3);
-    this.add.circle(x, y - 32 * scale, 38 * scale, 0x2f7e43).setDepth(4);
-    this.add.circle(x - 27 * scale, y - 18 * scale, 29 * scale, 0x449b50).setDepth(4);
-    this.add.circle(x + 27 * scale, y - 17 * scale, 30 * scale, 0x3d9149).setDepth(4);
-    this.add.circle(x, y - 55 * scale, 28 * scale, 0x58a95a).setDepth(5);
-    this.addBlocker(x, y + 10 * scale, 55 * scale, 65 * scale);
-  }
-
   drawTrees() {
-    [[90,410,1.1],[180,455,0.9],[370,410,1],[1450,410,1.15],[1510,520,0.9],[70,720,1.1],[350,790,0.9],[1050,805,1],[1510,830,1]].forEach((tree) => this.drawTree(...tree));
+    [[90,430,0.92],[180,475,0.75],[390,430,0.82],[1450,425,0.95],[1530,550,0.78],[70,735,0.9],[355,820,0.74],[1030,825,0.82],[1515,835,0.85]].forEach(([x,y,s]) => {
+      this.add.image(x, y, 'tree').setScale(s).setDepth(8);
+      this.addBlocker(x, y + 35 * s, 56 * s, 70 * s);
+    });
   }
 
   drawDecorations() {
-    for (let i = 0; i < 18; i += 1) {
-      const x = 340 + (i * 83) % 900;
-      const y = 410 + (i * 57) % 360;
-      this.add.circle(x, y, 5, [0xf3d35c, 0xee7a72, 0xffffff, 0xb985d8][i % 4]).setDepth(3);
+    for (let i = 0; i < 26; i += 1) {
+      const x = 320 + (i * 71) % 950;
+      const y = 410 + (i * 53) % 370;
+      this.add.circle(x, y, 5, [0xf3d35c, 0xee7a72, 0xffffff, 0xb985d8][i % 4]).setDepth(6);
     }
-    for (let i = 0; i < 6; i += 1) {
-      const x = 585 + i * 92;
-      this.add.rectangle(x, 850, 55, 12, 0x754c2d).setDepth(7);
-      this.add.rectangle(x - 20, 867, 8, 30, 0x6a472e).setDepth(7);
-      this.add.rectangle(x + 20, 867, 8, 30, 0x6a472e).setDepth(7);
+    for (let i = 0; i < 7; i += 1) {
+      const x = 570 + i * 90;
+      this.add.rectangle(x, 852, 54, 11, 0x754c2d).setDepth(7);
+      this.add.rectangle(x - 19, 868, 8, 28, 0x6a472e).setDepth(7);
+      this.add.rectangle(x + 19, 868, 8, 28, 0x6a472e).setDepth(7);
     }
-  }
-
-  drawBuilding(place) {
-    const { x, y, w, h, roof, wall } = place;
-    this.add.ellipse(x, y + h * 0.52, w * 0.94, 34, 0x244a2d, 0.24).setDepth(4);
-    this.add.rectangle(x, y, w, h, wall).setStrokeStyle(5, 0x553c29).setDepth(8);
-    this.add.triangle(x, y - h * 0.72, -w * 0.58, h * 0.55, 0, -h * 0.18, w * 0.58, h * 0.55, roof).setStrokeStyle(5, 0x543723).setDepth(9);
-    this.add.rectangle(x, y + h * 0.22, w * 0.16, h * 0.56, 0x69472f).setStrokeStyle(3, 0x47301f).setDepth(10);
-    const windows = w > 300 ? 4 : 2;
-    for (let i = 0; i < windows; i += 1) {
-      const wx = x - w * 0.36 + i * (w * 0.72 / (windows - 1 || 1));
-      this.add.rectangle(wx, y - 5, 42, 38, 0x70b5c8).setStrokeStyle(4, 0x65432a).setDepth(10);
-      this.add.line(0, 0, wx, y - 24, wx, y + 14, 0xf8e6b5).setLineWidth(2).setDepth(11);
-    }
-    this.add.text(x, y - h * 0.72, place.icon, { fontSize: w > 300 ? '40px' : '32px' }).setOrigin(0.5).setDepth(12);
-    this.add.text(x, y + h * 0.68, place.name, { fontFamily: 'Tahoma', fontSize: '19px', color: '#fff4cf', backgroundColor: '#342519', padding: { x: 11, y: 6 }, stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(13);
-    const zone = this.add.zone(x, y + 10, w * 0.92, h * 0.82).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', () => this.callbacks.onPlace(place));
-    this.addBlocker(x, y, w * 0.88, h * 0.72);
   }
 
   createPlaces() {
-    PLACES.forEach((place) => this.drawBuilding(place));
+    PLACES.forEach((place) => {
+      const image = this.add.image(place.x, place.y, place.key).setScale(place.scale).setDepth(20);
+      if (place.tint) image.setTint(place.tint);
+      this.add.text(place.x, place.y + (place.key === 'school' ? 118 : 88), place.name, {
+        fontFamily: 'Tahoma', fontSize: '19px', color: '#fff4cf', backgroundColor: '#342519',
+        padding: { x: 11, y: 6 }, stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(24);
+      const zone = this.add.zone(place.x, place.y + 20, place.key === 'school' ? 330 : 195, place.key === 'school' ? 150 : 105).setInteractive({ useHandCursor: true });
+      zone.on('pointerdown', () => this.callbacks.onPlace(place));
+      this.addBlocker(...place.blocker);
+    });
     this.placeZones = PLACES;
   }
 
   createNpc() {
-    const g = this.make.graphics({ add: false });
-    g.fillStyle(0x5d3d24).fillEllipse(28, 14, 42, 26);
-    g.fillStyle(0xffd0a8).fillCircle(28, 27, 15);
-    g.fillStyle(0x2e6d43).fillRoundedRect(10, 43, 36, 34, 7);
-    g.fillStyle(0x6b4930).fillRect(14, 72, 11, 20).fillRect(31, 72, 11, 20);
-    g.generateTexture('npc', 56, 94);
-    this.npc = this.physics.add.staticSprite(800, 555, 'npc').setDepth(40).setInteractive({ useHandCursor: true });
-    this.add.text(800, 495, 'ครูภูมิปัญญา', { fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 } }).setOrigin(0.5).setDepth(45);
-    const mark = this.add.text(800, 520, '!', { fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6 }).setOrigin(0.5).setDepth(46);
-    this.tweens.add({ targets: mark, y: 512, duration: 650, yoyo: true, repeat: -1 });
+    this.npc = this.physics.add.staticSprite(800, 565, 'teacher').setScale(0.72).setDepth(50).setInteractive({ useHandCursor: true });
+    this.add.text(800, 492, 'ครูภูมิปัญญา', { fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 } }).setOrigin(0.5).setDepth(55);
+    const mark = this.add.text(800, 515, '!', { fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6 }).setOrigin(0.5).setDepth(56);
+    this.tweens.add({ targets: mark, y: 507, duration: 650, yoyo: true, repeat: -1 });
     this.npc.on('pointerdown', () => this.callbacks.onNpc());
   }
 
   createCollectibles() {
     this.collectibles = this.physics.add.group();
     COLLECTIBLES.forEach(({ x, y }) => {
-      const plant = this.add.container(x, y).setDepth(22);
+      const plant = this.add.container(x, y).setDepth(35);
       const glow = this.add.circle(0, 5, 27, 0xf6e47c, 0.28);
       const stem = this.add.rectangle(0, 9, 5, 25, 0x356f39);
       const leaf1 = this.add.ellipse(-10, 0, 21, 11, 0x55a744).setAngle(25);
@@ -176,22 +162,15 @@ class MainTown extends Phaser.Scene {
   }
 
   createPlayer() {
-    const girl = this.callbacks.player?.character === 'girl';
-    const g = this.make.graphics({ add: false });
-    g.fillStyle(girl ? 0x6d3f31 : 0x23323e).fillCircle(28, 17, 18);
-    g.fillStyle(0xffd2ae).fillCircle(28, 29, 15);
-    g.fillStyle(0xffffff).fillRoundedRect(11, 46, 34, 34, 7);
-    g.fillStyle(girl ? 0x233d70 : 0x704b2d).fillRect(11, 72, 34, 22);
-    g.fillStyle(0x2d241f).fillRect(12, 91, 13, 8).fillRect(31, 91, 13, 8);
-    g.generateTexture('player', 56, 102);
-    this.player = this.physics.add.sprite(800, 790, 'player').setDepth(60).setCollideWorldBounds(true);
-    this.player.body.setSize(32, 48).setOffset(12, 49);
+    const key = this.callbacks.player?.character === 'girl' ? 'girl' : 'boy';
+    this.player = this.physics.add.sprite(800, 800, key).setScale(0.68).setDepth(80).setCollideWorldBounds(true);
+    this.player.body.setSize(42, 55).setOffset(19, 60);
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
       item.destroy();
       this.callbacks.onCollect();
     });
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(1.04);
+    this.cameras.main.setZoom(1.03);
   }
 
   update() {
@@ -204,7 +183,7 @@ class MainTown extends Phaser.Scene {
     if (x && y) { x *= 0.707; y *= 0.707; }
     this.player.setVelocity(x, y);
     if (x !== 0) this.player.setFlipX(x < 0);
-    if (x || y) this.player.setAngle(Math.sin(this.time.now / 90) * 1.4);
+    if (x || y) this.player.setAngle(Math.sin(this.time.now / 85) * 1.6);
     else this.player.setAngle(0);
 
     const npcDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.npc.x, this.npc.y);

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BOY_SHEET, GIRL_SHEET } from './spriteData.js';
 
 class MainTown extends Phaser.Scene {
   constructor(callbacks) {
@@ -11,9 +12,9 @@ class MainTown extends Phaser.Scene {
     this.load.svg('school', '/assets/school.svg', { width: 420, height: 250 });
     this.load.svg('village', '/assets/village-building.svg', { width: 260, height: 190 });
     this.load.svg('tree', '/assets/tree.svg', { width: 130, height: 170 });
-    this.load.svg('boy', '/assets/player-boy.svg', { width: 80, height: 120 });
-    this.load.svg('girl', '/assets/player-girl.svg', { width: 80, height: 120 });
     this.load.svg('teacher', '/assets/npc-teacher.svg', { width: 86, height: 126 });
+    this.load.spritesheet('boy-sheet', BOY_SHEET, { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet('girl-sheet', GIRL_SHEET, { frameWidth: 48, frameHeight: 64 });
   }
 
   create() {
@@ -25,11 +26,11 @@ class MainTown extends Phaser.Scene {
 
     this.generateTerrainTextures();
     this.createTilemap();
-    this.createAmbientLife();
     this.createPlaces();
     this.createNpc();
     this.createCollectibles();
     this.createPlayer();
+    this.createAmbientLife();
     this.physics.add.collider(this.player, this.blockers);
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -61,10 +62,8 @@ class MainTown extends Phaser.Scene {
     const water = this.make.graphics({ add: false });
     water.fillStyle(0x62b8d0).fillRect(0, 0, 64, 64);
     water.lineStyle(3, 0x9edbe5, 0.9);
-    water.beginPath(); water.moveTo(4,16); water.lineTo(24,16); water.lineTo(31,12); water.strokePath();
-    water.beginPath(); water.moveTo(30,42); water.lineTo(52,42); water.lineTo(60,38); water.strokePath();
-    water.lineStyle(2, 0x3c8dad, 0.8);
-    water.beginPath(); water.moveTo(8,55); water.lineTo(28,55); water.strokePath();
+    water.lineBetween(4,16,24,16); water.lineBetween(30,42,56,42);
+    water.lineStyle(2, 0x3c8dad, 0.8); water.lineBetween(8,55,28,55);
     water.generateTexture('water-tile', 64, 64);
   }
 
@@ -73,23 +72,27 @@ class MainTown extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x9bd7ec);
     this.add.rectangle(width / 2, 180, width, 270, 0xc2e9f4);
     this.add.triangle(170,260,-260,135,0,-110,260,135,0x6b9870).setAlpha(0.9);
-    this.add.triangle(520,260,-260,135,0,-120,260,135,0x79a477).setAlpha(0.9);
-    this.add.triangle(1390,260,-300,145,0,-125,300,145,0x648b69).setAlpha(0.9);
+    this.add.triangle(620,260,-300,145,0,-125,300,145,0x79a477).setAlpha(0.9);
+    this.add.triangle(1600,260,-340,155,0,-130,340,155,0x648b69).setAlpha(0.9);
 
-    this.map = this.make.tilemap({ tileWidth: tileSize, tileHeight: tileSize, width: Math.ceil(width / tileSize), height: Math.ceil(height / tileSize) });
+    this.map = this.make.tilemap({
+      tileWidth: tileSize,
+      tileHeight: tileSize,
+      width: Math.ceil(width / tileSize),
+      height: Math.ceil(height / tileSize),
+    });
     const grassSet = this.map.addTilesetImage('grass-tile', 'grass-tile', tileSize, tileSize, 0, 0, 0);
     const pathSet = this.map.addTilesetImage('path-tile', 'path-tile', tileSize, tileSize, 0, 0, 1);
-    const groundLayer = this.map.createBlankLayer('Ground', grassSet).fill(0);
-    groundLayer.setDepth(1);
+    this.map.createBlankLayer('Ground', grassSet).fill(0).setDepth(1);
     this.pathLayer = this.map.createBlankLayer('Road', pathSet).fill(-1).setDepth(2);
 
     this.mapData.roads.forEach((road) => {
-      const startX = Math.floor(road.x / tileSize);
-      const startY = Math.floor(road.y / tileSize);
-      const endX = Math.ceil((road.x + road.width) / tileSize);
-      const endY = Math.ceil((road.y + road.height) / tileSize);
-      for (let y = startY; y < endY; y += 1) {
-        for (let x = startX; x < endX; x += 1) this.pathLayer.putTileAt(1, x, y);
+      const sx = Math.floor(road.x / tileSize);
+      const sy = Math.floor(road.y / tileSize);
+      const ex = Math.ceil((road.x + road.width) / tileSize);
+      const ey = Math.ceil((road.y + road.height) / tileSize);
+      for (let y = sy; y < ey; y += 1) {
+        for (let x = sx; x < ex; x += 1) this.pathLayer.putTileAt(1, x, y);
       }
     });
 
@@ -99,10 +102,12 @@ class MainTown extends Phaser.Scene {
     maskShape.fillStyle(0xffffff).fillEllipse(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height);
     this.water.setMask(maskShape.createGeometryMask());
     this.add.ellipse(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height, 0x000000, 0).setStrokeStyle(15, 0x4c7d53).setDepth(4);
-    this.add.text(pond.x + pond.width / 2, pond.y + pond.height - 20, pond.label, { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5).setDepth(5);
+    this.add.text(pond.x + pond.width / 2, pond.y + pond.height - 20, pond.label, {
+      fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 },
+    }).setOrigin(0.5).setDepth(5);
     this.addBlocker(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height);
 
-    this.drawFlag(800, 430);
+    this.drawFlag(960, 455);
     this.drawTrees();
     this.drawDecorations();
   }
@@ -128,28 +133,25 @@ class MainTown extends Phaser.Scene {
   drawTrees() {
     this.mapData.trees.forEach(({ x, y, scale }, index) => {
       const tree = this.add.image(x, y, 'tree').setScale(scale).setDepth(12);
-      this.tweens.add({ targets: tree, angle: index % 2 ? 1.2 : -1.2, duration: 1700 + index * 80, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.tweens.add({ targets: tree, angle: index % 2 ? 1.1 : -1.1, duration: 1700 + index * 70, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       this.addBlocker(x, y + 35 * scale, 56 * scale, 70 * scale);
     });
   }
 
   drawDecorations() {
-    for (let i = 0; i < 30; i += 1) {
-      const x = 320 + (i * 71) % 950;
-      const y = 410 + (i * 53) % 370;
+    for (let i = 0; i < 38; i += 1) {
+      const x = 260 + (i * 89) % 1420;
+      const y = 440 + (i * 61) % 520;
       this.add.circle(x, y, 5, [0xf3d35c,0xee7a72,0xffffff,0xb985d8][i % 4]).setDepth(6);
     }
   }
 
   createAmbientLife() {
-    for (let i = 0; i < 5; i += 1) {
-      const shadow = this.add.ellipse(-200 - i * 180, 430 + i * 75, 210, 75, 0x355f42, 0.12).setDepth(10);
-      this.tweens.add({ targets: shadow, x: 1800, duration: 24000 + i * 3500, repeat: -1, delay: i * 2500 });
-    }
-    for (let i = 0; i < 8; i += 1) {
-      const butterfly = this.add.container(280 + (i * 173) % 1050, 410 + (i * 91) % 360).setDepth(45);
-      const left = this.add.ellipse(-5,0,10,7,i % 2 ? 0xf6cf53 : 0xf18cc2);
-      const right = this.add.ellipse(5,0,10,7,i % 2 ? 0xf6cf53 : 0xf18cc2);
+    for (let i = 0; i < 7; i += 1) {
+      const butterfly = this.add.container(280 + (i * 211) % 1300, 430 + (i * 97) % 430).setDepth(45);
+      const color = i % 2 ? 0xf6cf53 : 0xf18cc2;
+      const left = this.add.ellipse(-5,0,10,7,color);
+      const right = this.add.ellipse(5,0,10,7,color);
       butterfly.add([left,right]);
       this.tweens.add({ targets: [left,right], scaleX: 0.25, duration: 170, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: butterfly, x: butterfly.x + 55, y: butterfly.y - 35, duration: 3200 + i * 220, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
@@ -160,7 +162,10 @@ class MainTown extends Phaser.Scene {
     this.mapData.places.forEach((place) => {
       const image = this.add.image(place.x, place.y, place.key).setScale(place.scale).setDepth(20);
       if (place.tint) image.setTint(place.tint);
-      this.add.text(place.x, place.y + (place.key === 'school' ? 118 : 88), place.name, { fontFamily: 'Tahoma', fontSize: '19px', color: '#fff4cf', backgroundColor: '#342519', padding: { x: 11, y: 6 }, stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(24);
+      this.add.text(place.x, place.y + (place.key === 'school' ? 118 : 88), place.name, {
+        fontFamily: 'Tahoma', fontSize: '18px', color: '#fff4cf', backgroundColor: '#342519',
+        padding: { x: 10, y: 5 }, stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(24);
       const zone = this.add.zone(place.x, place.y + 20, place.key === 'school' ? 330 : 195, place.key === 'school' ? 150 : 105).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => this.callbacks.onPlace(place));
       this.addBlocker(...place.blocker);
@@ -171,8 +176,12 @@ class MainTown extends Phaser.Scene {
   createNpc() {
     const npc = this.mapData.npc;
     this.npc = this.physics.add.staticSprite(npc.x, npc.y, 'teacher').setScale(0.72).setDepth(50).setInteractive({ useHandCursor: true });
-    this.add.text(npc.x, npc.y - 73, npc.name, { fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 } }).setOrigin(0.5).setDepth(55);
-    const mark = this.add.text(npc.x, npc.y - 50, '!', { fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6 }).setOrigin(0.5).setDepth(56);
+    this.add.text(npc.x, npc.y - 73, npc.name, {
+      fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 },
+    }).setOrigin(0.5).setDepth(55);
+    const mark = this.add.text(npc.x, npc.y - 50, '!', {
+      fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(56);
     this.tweens.add({ targets: mark, y: npc.y - 58, duration: 650, yoyo: true, repeat: -1 });
     this.npc.on('pointerdown', () => this.callbacks.onNpc());
   }
@@ -193,39 +202,70 @@ class MainTown extends Phaser.Scene {
     });
   }
 
+  createPlayerAnimations(sheetKey) {
+    const names = ['down', 'left', 'right', 'up'];
+    names.forEach((direction, row) => {
+      this.anims.create({
+        key: `${sheetKey}-${direction}`,
+        frames: this.anims.generateFrameNumbers(sheetKey, { start: row * 3, end: row * 3 + 2 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: `${sheetKey}-idle-${direction}`,
+        frames: [{ key: sheetKey, frame: row * 3 + 1 }],
+        frameRate: 1,
+      });
+    });
+  }
+
   createPlayer() {
-    const key = this.callbacks.player?.character === 'girl' ? 'girl' : 'boy';
+    const sheetKey = this.callbacks.player?.character === 'girl' ? 'girl-sheet' : 'boy-sheet';
+    this.playerKey = sheetKey;
+    this.createPlayerAnimations(sheetKey);
     const spawn = this.mapData.spawn;
-    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + 37, 42, 15, 0x1d3a25, 0.34).setDepth(70);
-    this.player = this.physics.add.sprite(spawn.x, spawn.y, key).setScale(0.68).setDepth(80).setCollideWorldBounds(true);
-    this.player.body.setSize(42,55).setOffset(19,60);
-    this.physics.add.overlap(this.player, this.collectibles, (_, item) => { item.destroy(); this.callbacks.onCollect(); });
+    this.playerShadow = this.add.ellipse(spawn.x, spawn.y + 27, 34, 12, 0x1d3a25, 0.32).setDepth(70);
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, sheetKey, 1).setScale(1.35).setDepth(80).setCollideWorldBounds(true);
+    this.player.body.setSize(22, 22).setOffset(13, 39);
+    this.lastDirection = 'down';
+    this.player.play(`${sheetKey}-idle-down`);
+    this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
+      item.destroy();
+      this.cameras.main.shake(90, 0.003);
+      this.callbacks.onCollect();
+    });
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(1.03);
+    this.cameras.main.setZoom(1.05);
   }
 
   update() {
     const speed = this.keys.SHIFT.isDown ? 330 : 235;
-    let x = 0; let y = 0;
+    let x = 0;
+    let y = 0;
     if (this.cursors.left.isDown || this.keys.A.isDown) x = -speed;
     if (this.cursors.right.isDown || this.keys.D.isDown) x = speed;
     if (this.cursors.up.isDown || this.keys.W.isDown) y = -speed;
     if (this.cursors.down.isDown || this.keys.S.isDown) y = speed;
     if (x && y) { x *= 0.707; y *= 0.707; }
-    this.player.setVelocity(x,y);
-    if (x !== 0) this.player.setFlipX(x < 0);
+    this.player.setVelocity(x, y);
+
+    let direction = this.lastDirection;
+    if (Math.abs(x) > Math.abs(y)) direction = x < 0 ? 'left' : 'right';
+    else if (y !== 0) direction = y < 0 ? 'up' : 'down';
+
     if (x || y) {
-      this.player.setAngle(Math.sin(this.time.now / 85) * 1.6);
-      this.player.setScale(0.68, 0.68 + Math.sin(this.time.now / 90) * 0.018);
+      this.lastDirection = direction;
+      this.player.play(`${this.playerKey}-${direction}`, true);
     } else {
-      this.player.setAngle(0);
-      this.player.setScale(0.68);
+      this.player.play(`${this.playerKey}-idle-${this.lastDirection}`, true);
     }
-    this.playerShadow.setPosition(this.player.x, this.player.y + 37);
+
+    this.playerShadow.setPosition(this.player.x, this.player.y + 27);
     this.water.tilePositionX += 0.18;
 
     const npcDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.npc.x, this.npc.y);
-    let nearest = null; let distance = Infinity;
+    let nearest = null;
+    let distance = Infinity;
     this.placeZones.forEach((place) => {
       const current = Phaser.Math.Distance.Between(this.player.x, this.player.y, place.x, place.y);
       if (current < distance) { nearest = place; distance = current; }

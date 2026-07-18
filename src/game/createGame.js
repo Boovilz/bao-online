@@ -5,9 +5,38 @@ class MainTown extends Phaser.Scene {
   constructor(callbacks) {
     super('MainTown');
     this.callbacks = callbacks;
+    this.assetErrors = new Set();
   }
 
   preload() {
+    const camera = this.cameras.main;
+    const centerX = camera.width / 2;
+    const centerY = camera.height / 2;
+
+    const loadingBackdrop = this.add.rectangle(centerX, centerY, camera.width, camera.height, 0x102a43).setDepth(1000);
+    const loadingTitle = this.add.text(centerX, centerY - 58, 'BAO ONLINE', {
+      fontFamily: 'Tahoma', fontSize: '34px', color: '#ffe29a', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(1001);
+    const loadingText = this.add.text(centerX, centerY + 48, 'กำลังเตรียมหมู่บ้าน... 0%', {
+      fontFamily: 'Tahoma', fontSize: '20px', color: '#ffffff',
+    }).setOrigin(0.5).setDepth(1001);
+    const barBg = this.add.rectangle(centerX, centerY, 430, 24, 0x081923).setStrokeStyle(2, 0xf0bd58).setDepth(1001);
+    const bar = this.add.rectangle(centerX - 207, centerY, 0, 14, 0xf0bd58).setOrigin(0, 0.5).setDepth(1002);
+
+    this.load.on('progress', (value) => {
+      bar.width = 414 * value;
+      loadingText.setText(`กำลังเตรียมหมู่บ้าน... ${Math.round(value * 100)}%`);
+    });
+
+    this.load.on('loaderror', (file) => {
+      this.assetErrors.add(file.key);
+      console.warn(`[BAO] Asset failed to load: ${file.key}`);
+    });
+
+    this.load.once('complete', () => {
+      [loadingBackdrop, loadingTitle, loadingText, barBg, bar].forEach((object) => object.destroy());
+    });
+
     this.load.json('mainTown', '/maps/main-town.json');
     this.load.svg('school', '/assets/school.svg', { width: 420, height: 250 });
     this.load.svg('village', '/assets/village-building.svg', { width: 260, height: 190 });
@@ -19,6 +48,11 @@ class MainTown extends Phaser.Scene {
 
   create() {
     this.mapData = this.cache.json.get('mainTown');
+    if (!this.mapData) {
+      this.showFatalError('ไม่สามารถโหลดแผนที่หมู่บ้านได้ กรุณารีเฟรชหน้าเว็บ');
+      return;
+    }
+
     const { width, height } = this.mapData.world;
     this.physics.world.setBounds(0, 0, width, height);
     this.cameras.main.setBounds(0, 0, width, height);
@@ -40,6 +74,25 @@ class MainTown extends Phaser.Scene {
       backgroundColor: '#332417', padding: { x: 18, y: 10 },
       stroke: '#f0bd58', strokeThickness: 2,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(300).setVisible(false);
+
+    if (this.assetErrors.size > 0) this.showAssetWarning();
+  }
+
+  showFatalError(message) {
+    this.add.rectangle(640, 360, 1280, 720, 0x102a43);
+    this.add.text(640, 330, 'เกิดข้อผิดพลาดในการเปิดเกม', {
+      fontFamily: 'Tahoma', fontSize: '32px', color: '#ffd36b', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    this.add.text(640, 390, message, {
+      fontFamily: 'Tahoma', fontSize: '20px', color: '#ffffff', align: 'center', wordWrap: { width: 760 },
+    }).setOrigin(0.5);
+  }
+
+  showAssetWarning() {
+    const warning = this.add.text(1260, 18, 'ใช้ภาพสำรองบางรายการ', {
+      fontFamily: 'Tahoma', fontSize: '15px', color: '#3b2914', backgroundColor: '#ffd36b', padding: { x: 10, y: 6 },
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(500);
+    this.time.delayedCall(4500, () => warning.destroy());
   }
 
   generateTerrainTextures() {
@@ -65,6 +118,15 @@ class MainTown extends Phaser.Scene {
     water.lineBetween(4,16,24,16); water.lineBetween(30,42,56,42);
     water.lineStyle(2, 0x3c8dad, 0.8); water.lineBetween(8,55,28,55);
     water.generateTexture('water-tile', 64, 64);
+
+    const fallback = this.make.graphics({ add: false });
+    fallback.fillStyle(0x000000, 0).fillRect(0, 0, 48, 64);
+    fallback.fillStyle(0xf2c49d).fillCircle(24, 15, 10);
+    fallback.fillStyle(0x493321).fillRoundedRect(14, 4, 20, 9, 4);
+    fallback.fillStyle(0xffffff).fillCircle(20, 15, 2).fillCircle(28, 15, 2);
+    fallback.fillStyle(0x3d78b8).fillRoundedRect(12, 26, 24, 25, 6);
+    fallback.fillStyle(0x25334a).fillRect(14, 49, 8, 13).fillRect(26, 49, 8, 13);
+    fallback.generateTexture('player-fallback', 48, 64);
   }
 
   createTilemap() {
@@ -75,12 +137,7 @@ class MainTown extends Phaser.Scene {
     this.add.triangle(620,260,-300,145,0,-125,300,145,0x79a477).setAlpha(0.9);
     this.add.triangle(1600,260,-340,155,0,-130,340,155,0x648b69).setAlpha(0.9);
 
-    this.map = this.make.tilemap({
-      tileWidth: tileSize,
-      tileHeight: tileSize,
-      width: Math.ceil(width / tileSize),
-      height: Math.ceil(height / tileSize),
-    });
+    this.map = this.make.tilemap({ tileWidth: tileSize, tileHeight: tileSize, width: Math.ceil(width / tileSize), height: Math.ceil(height / tileSize) });
     const grassSet = this.map.addTilesetImage('grass-tile', 'grass-tile', tileSize, tileSize, 0, 0, 0);
     const pathSet = this.map.addTilesetImage('path-tile', 'path-tile', tileSize, tileSize, 0, 0, 1);
     this.map.createBlankLayer('Ground', grassSet).fill(0).setDepth(1);
@@ -91,9 +148,7 @@ class MainTown extends Phaser.Scene {
       const sy = Math.floor(road.y / tileSize);
       const ex = Math.ceil((road.x + road.width) / tileSize);
       const ey = Math.ceil((road.y + road.height) / tileSize);
-      for (let y = sy; y < ey; y += 1) {
-        for (let x = sx; x < ex; x += 1) this.pathLayer.putTileAt(1, x, y);
-      }
+      for (let y = sy; y < ey; y += 1) for (let x = sx; x < ex; x += 1) this.pathLayer.putTileAt(1, x, y);
     });
 
     const pond = this.mapData.water[0];
@@ -102,9 +157,7 @@ class MainTown extends Phaser.Scene {
     maskShape.fillStyle(0xffffff).fillEllipse(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height);
     this.water.setMask(maskShape.createGeometryMask());
     this.add.ellipse(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height, 0x000000, 0).setStrokeStyle(15, 0x4c7d53).setDepth(4);
-    this.add.text(pond.x + pond.width / 2, pond.y + pond.height - 20, pond.label, {
-      fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 },
-    }).setOrigin(0.5).setDepth(5);
+    this.add.text(pond.x + pond.width / 2, pond.y + pond.height - 20, pond.label, { fontFamily: 'Tahoma', fontSize: '20px', color: '#fff', backgroundColor: '#2c4f3f', padding: { x: 10, y: 5 } }).setOrigin(0.5).setDepth(5);
     this.addBlocker(pond.x + pond.width / 2, pond.y + pond.height / 2, pond.width, pond.height);
 
     this.drawFlag(960, 455);
@@ -163,8 +216,7 @@ class MainTown extends Phaser.Scene {
       const image = this.add.image(place.x, place.y, place.key).setScale(place.scale).setDepth(20);
       if (place.tint) image.setTint(place.tint);
       this.add.text(place.x, place.y + (place.key === 'school' ? 118 : 88), place.name, {
-        fontFamily: 'Tahoma', fontSize: '18px', color: '#fff4cf', backgroundColor: '#342519',
-        padding: { x: 10, y: 5 }, stroke: '#000', strokeThickness: 2,
+        fontFamily: 'Tahoma', fontSize: '18px', color: '#fff4cf', backgroundColor: '#342519', padding: { x: 10, y: 5 }, stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5).setDepth(24);
       const zone = this.add.zone(place.x, place.y + 20, place.key === 'school' ? 330 : 195, place.key === 'school' ? 150 : 105).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => this.callbacks.onPlace(place));
@@ -176,12 +228,8 @@ class MainTown extends Phaser.Scene {
   createNpc() {
     const npc = this.mapData.npc;
     this.npc = this.physics.add.staticSprite(npc.x, npc.y, 'teacher').setScale(0.72).setDepth(50).setInteractive({ useHandCursor: true });
-    this.add.text(npc.x, npc.y - 73, npc.name, {
-      fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 },
-    }).setOrigin(0.5).setDepth(55);
-    const mark = this.add.text(npc.x, npc.y - 50, '!', {
-      fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(56);
+    this.add.text(npc.x, npc.y - 73, npc.name, { fontFamily: 'Tahoma', fontSize: '18px', color: '#fff8dd', backgroundColor: '#3d2b1e', padding: { x: 9, y: 5 } }).setOrigin(0.5).setDepth(55);
+    const mark = this.add.text(npc.x, npc.y - 50, '!', { fontFamily: 'Tahoma', fontSize: '34px', color: '#ffd94f', stroke: '#493725', strokeThickness: 6 }).setOrigin(0.5).setDepth(56);
     this.tweens.add({ targets: mark, y: npc.y - 58, duration: 650, yoyo: true, repeat: -1 });
     this.npc.on('pointerdown', () => this.callbacks.onNpc());
   }
@@ -203,32 +251,34 @@ class MainTown extends Phaser.Scene {
   }
 
   createPlayerAnimations(sheetKey) {
+    if (!this.textures.exists(sheetKey) || this.textures.get(sheetKey).frameTotal < 12) return false;
     const names = ['down', 'left', 'right', 'up'];
     names.forEach((direction, row) => {
-      this.anims.create({
-        key: `${sheetKey}-${direction}`,
-        frames: this.anims.generateFrameNumbers(sheetKey, { start: row * 3, end: row * 3 + 2 }),
-        frameRate: 8,
-        repeat: -1,
-      });
-      this.anims.create({
-        key: `${sheetKey}-idle-${direction}`,
-        frames: [{ key: sheetKey, frame: row * 3 + 1 }],
-        frameRate: 1,
-      });
+      const walkKey = `${sheetKey}-${direction}`;
+      const idleKey = `${sheetKey}-idle-${direction}`;
+      if (!this.anims.exists(walkKey)) {
+        this.anims.create({ key: walkKey, frames: this.anims.generateFrameNumbers(sheetKey, { start: row * 3, end: row * 3 + 2 }), frameRate: 8, repeat: -1 });
+      }
+      if (!this.anims.exists(idleKey)) {
+        this.anims.create({ key: idleKey, frames: [{ key: sheetKey, frame: row * 3 + 1 }], frameRate: 1 });
+      }
     });
+    return true;
   }
 
   createPlayer() {
-    const sheetKey = this.callbacks.player?.character === 'girl' ? 'girl-sheet' : 'boy-sheet';
-    this.playerKey = sheetKey;
-    this.createPlayerAnimations(sheetKey);
+    const requestedKey = this.callbacks.player?.character === 'girl' ? 'girl-sheet' : 'boy-sheet';
+    this.playerAnimated = this.createPlayerAnimations(requestedKey);
+    this.playerKey = this.playerAnimated ? requestedKey : 'player-fallback';
+    if (!this.playerAnimated) this.assetErrors.add(requestedKey);
+
     const spawn = this.mapData.spawn;
     this.playerShadow = this.add.ellipse(spawn.x, spawn.y + 27, 34, 12, 0x1d3a25, 0.32).setDepth(70);
-    this.player = this.physics.add.sprite(spawn.x, spawn.y, sheetKey, 1).setScale(1.35).setDepth(80).setCollideWorldBounds(true);
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, this.playerKey, this.playerAnimated ? 1 : undefined).setScale(1.35).setDepth(80).setCollideWorldBounds(true);
     this.player.body.setSize(22, 22).setOffset(13, 39);
     this.lastDirection = 'down';
-    this.player.play(`${sheetKey}-idle-down`);
+    if (this.playerAnimated) this.player.play(`${this.playerKey}-idle-down`);
+
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
       item.destroy();
       this.cameras.main.shake(90, 0.003);
@@ -239,6 +289,8 @@ class MainTown extends Phaser.Scene {
   }
 
   update() {
+    if (!this.player || !this.keys || !this.cursors) return;
+
     const speed = this.keys.SHIFT.isDown ? 330 : 235;
     let x = 0;
     let y = 0;
@@ -253,11 +305,15 @@ class MainTown extends Phaser.Scene {
     if (Math.abs(x) > Math.abs(y)) direction = x < 0 ? 'left' : 'right';
     else if (y !== 0) direction = y < 0 ? 'up' : 'down';
 
-    if (x || y) {
-      this.lastDirection = direction;
-      this.player.play(`${this.playerKey}-${direction}`, true);
-    } else {
-      this.player.play(`${this.playerKey}-idle-${this.lastDirection}`, true);
+    if (this.playerAnimated) {
+      if (x || y) {
+        this.lastDirection = direction;
+        this.player.play(`${this.playerKey}-${direction}`, true);
+      } else {
+        this.player.play(`${this.playerKey}-idle-${this.lastDirection}`, true);
+      }
+    } else if (x !== 0) {
+      this.player.setFlipX(x < 0);
     }
 
     this.playerShadow.setPosition(this.player.x, this.player.y + 27);

@@ -8,12 +8,29 @@ const DEFAULT_PLAYER = {
   level: 1,
   exp: 0,
   coin: 100,
+  inventory: { seedling: 0, flower: 0, book: 0, lego: 0 },
   quest: { accepted: false, progress: 0, target: 3, completed: false, claimed: false },
 };
 
+const ITEM_INFO = {
+  seedling: { icon: '🌱', name: 'ต้นกล้า' },
+  flower: { icon: '🌼', name: 'ดอกไม้' },
+  book: { icon: '📚', name: 'หนังสือ' },
+  lego: { icon: '🧱', name: 'ชิ้นส่วน LEGO' },
+};
+
+function normalizePlayer(saved = {}) {
+  return {
+    ...DEFAULT_PLAYER,
+    ...saved,
+    inventory: { ...DEFAULT_PLAYER.inventory, ...(saved.inventory || {}) },
+    quest: { ...DEFAULT_PLAYER.quest, ...(saved.quest || {}) },
+  };
+}
+
 function loadPlayer() {
   try {
-    return { ...DEFAULT_PLAYER, ...JSON.parse(localStorage.getItem('bao-player') || '{}') };
+    return normalizePlayer(JSON.parse(localStorage.getItem('bao-player') || '{}'));
   } catch {
     return DEFAULT_PLAYER;
   }
@@ -24,14 +41,8 @@ function sendKey(key, type) {
 }
 
 function HoldButton({ label, keyName, className = '' }) {
-  const press = (event) => {
-    event.preventDefault();
-    sendKey(keyName, 'keydown');
-  };
-  const release = (event) => {
-    event.preventDefault();
-    sendKey(keyName, 'keyup');
-  };
+  const press = (event) => { event.preventDefault(); sendKey(keyName, 'keydown'); };
+  const release = (event) => { event.preventDefault(); sendKey(keyName, 'keyup'); };
   return <button className={`touch-btn ${className}`} onPointerDown={press} onPointerUp={release} onPointerCancel={release} onPointerLeave={release}>{label}</button>;
 }
 
@@ -41,10 +52,16 @@ export default function App() {
   const [username, setUsername] = useState('KruSara');
   const [player, setPlayer] = useState(loadPlayer);
   const [panel, setPanel] = useState(null);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     localStorage.setItem('bao-player', JSON.stringify(player));
   }, [player]);
+
+  const showToast = (message) => {
+    setToast(message);
+    window.setTimeout(() => setToast(''), 1800);
+  };
 
   useEffect(() => {
     if (screen !== 'world') return undefined;
@@ -54,10 +71,12 @@ export default function App() {
       onNpc: () => setPanel({ type: 'npc' }),
       onCollect: () => {
         setPlayer((current) => {
-          if (!current.quest.accepted || current.quest.completed) return current;
+          const inventory = { ...current.inventory, seedling: current.inventory.seedling + 1 };
+          if (!current.quest.accepted || current.quest.completed) return { ...current, inventory };
           const progress = Math.min(current.quest.progress + 1, current.quest.target);
-          return { ...current, quest: { ...current.quest, progress, completed: progress >= current.quest.target } };
+          return { ...current, inventory, quest: { ...current.quest, progress, completed: progress >= current.quest.target } };
         });
+        showToast('ได้รับ 🌱 ต้นกล้า x1');
       },
     });
     return () => gameRef.current?.destroy(true);
@@ -78,15 +97,17 @@ export default function App() {
   const acceptQuest = () => {
     setPlayer((current) => ({ ...current, quest: { accepted: true, progress: 0, target: 3, completed: false, claimed: false } }));
     setPanel(null);
+    showToast('รับภารกิจใหม่แล้ว');
   };
 
   const claimReward = () => {
     setPlayer((current) => {
       if (!current.quest.completed || current.quest.claimed) return current;
       const totalExp = current.exp + 120;
+      const gainedLevels = Math.floor(totalExp / 100);
       return {
         ...current,
-        level: current.level + Math.floor(totalExp / 100),
+        level: current.level + gainedLevels,
         exp: totalExp % 100,
         coin: current.coin + 50,
         quest: { ...current.quest, claimed: true },
@@ -108,7 +129,7 @@ export default function App() {
             <div className="input-frame"><span>👤</span><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} maxLength={24} /></div>
             <button className="primary start-button" type="submit">เข้าสู่บ้านเฮา</button>
           </form>
-          <small>V0.2 · บันทึกความก้าวหน้าในอุปกรณ์นี้</small>
+          <small>V0.4 · Inventory & Progression</small>
         </section>
       </main>
     );
@@ -120,14 +141,8 @@ export default function App() {
         <section className="select-card game-panel">
           <header className="select-heading"><span>เลือกตัวละคร</span><small>ผู้เล่น: {player.username}</small></header>
           <div className="character-grid">
-            <button onClick={() => chooseCharacter('boy')}>
-              <img src="/assets/player-boy.svg" alt="นักเรียนชาย" />
-              <span>น้องต้นกล้า</span><small>นักเรียนชาย</small><em>เลือกตัวละครนี้</em>
-            </button>
-            <button onClick={() => chooseCharacter('girl')}>
-              <img src="/assets/player-girl.svg" alt="นักเรียนหญิง" />
-              <span>น้องข้าวหอม</span><small>นักเรียนหญิง</small><em>เลือกตัวละครนี้</em>
-            </button>
+            <button onClick={() => chooseCharacter('boy')}><img src="/assets/player-boy.svg" alt="นักเรียนชาย" /><span>น้องต้นกล้า</span><small>นักเรียนชาย</small><em>เลือกตัวละครนี้</em></button>
+            <button onClick={() => chooseCharacter('girl')}><img src="/assets/player-girl.svg" alt="นักเรียนหญิง" /><span>น้องข้าวหอม</span><small>นักเรียนหญิง</small><em>เลือกตัวละครนี้</em></button>
           </div>
           <button className="secondary back-button" onClick={() => setScreen('login')}>← ย้อนกลับ</button>
         </section>
@@ -142,7 +157,10 @@ export default function App() {
           <span className="avatar"><img src={player.character === 'girl' ? '/assets/player-girl.svg' : '/assets/player-boy.svg'} alt="ตัวละคร" /></span>
           <div><h1>บ้านเฮาออนไลน์</h1><p>{player.name} · {player.username}</p></div>
         </div>
-        <div className="stats"><span>Lv. {player.level}</span><span>EXP {player.exp}%</span><span>🪙 {player.coin}</span></div>
+        <div className="stats">
+          <span>Lv. {player.level}</span><span>EXP {player.exp}/100</span><span>🪙 {player.coin}</span>
+          <button onClick={() => setPanel({ type: 'inventory' })}>🎒 กระเป๋า</button>
+        </div>
       </header>
 
       <section className="game-wrap">
@@ -154,13 +172,12 @@ export default function App() {
           {player.quest.claimed && <p>✅ รับรางวัลแล้ว</p>}
           {player.quest.completed && !player.quest.claimed && <button onClick={claimReward}>รับรางวัล</button>}
         </aside>
+        {toast && <div className="toast">{toast}</div>}
 
         <div className="mobile-controls" aria-label="ปุ่มควบคุมเกม">
           <div className="dpad">
-            <HoldButton label="▲" keyName="ArrowUp" className="up" />
-            <HoldButton label="◀" keyName="ArrowLeft" className="left" />
-            <HoldButton label="▼" keyName="ArrowDown" className="down" />
-            <HoldButton label="▶" keyName="ArrowRight" className="right" />
+            <HoldButton label="▲" keyName="ArrowUp" className="up" /><HoldButton label="◀" keyName="ArrowLeft" className="left" />
+            <HoldButton label="▼" keyName="ArrowDown" className="down" /><HoldButton label="▶" keyName="ArrowRight" className="right" />
           </div>
           <button className="action-btn" onPointerDown={(event) => { event.preventDefault(); sendKey('KeyE', 'keydown'); setTimeout(() => sendKey('KeyE', 'keyup'), 100); }}>E<br /><small>คุย</small></button>
         </div>
@@ -171,6 +188,7 @@ export default function App() {
         <div className="overlay" onClick={() => setPanel(null)}>
           <section className="dialog" onClick={(event) => event.stopPropagation()}>
             <button className="close" onClick={() => setPanel(null)}>×</button>
+            {panel.type === 'inventory' && <><div className="place-icon">🎒</div><h2>กระเป๋าของฉัน</h2><div className="inventory-grid">{Object.entries(ITEM_INFO).map(([key, item]) => <div className="inventory-item" key={key}><span>{item.icon}</span><strong>{item.name}</strong><em>x{player.inventory[key]}</em></div>)}</div><p>🪙 เหรียญทั้งหมด {player.coin}</p></>}
             {panel.type === 'npc' && <>
               <img className="dialog-avatar" src="/assets/npc-teacher.svg" alt="ครูภูมิปัญญา" /><h2>ครูภูมิปัญญา</h2>
               {!player.quest.accepted && <><p>ช่วยครูเก็บต้นกล้าในบริเวณโรงเรียนให้ครบ 3 ต้น แล้วกลับมารับรางวัลนะ</p><button className="primary" onClick={acceptQuest}>รับภารกิจ</button></>}

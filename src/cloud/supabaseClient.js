@@ -18,7 +18,10 @@ export const supabase = cloudEnabled
     })
   : null;
 
-export const classroomId = import.meta.env.VITE_BAO_CLASSROOM_ID || 'ban-lao-pho-ha-p6';
+export const classroomId =
+  import.meta.env.VITE_CLASSROOM_ID ||
+  import.meta.env.VITE_BAO_CLASSROOM_ID ||
+  'banlaophoha-p6-2569';
 
 export function getCloudStatus() {
   return {

@@ -2,53 +2,85 @@ import Phaser from 'phaser';
 
 const NPC_DEFINITIONS = [
   {
-    name: 'น้องอิม', role: 'student', shirt: 0xf4a7c1, skin: 0xf2c49d,
+    name: 'น้องอิม', role: 'student-girl', shirt: 0xf4a7c1, skin: 0xf2c49d, hair: 0x30221d,
     route: [{ x: 720, y: 610 }, { x: 930, y: 610 }, { x: 1110, y: 700 }, { x: 930, y: 610 }],
   },
   {
-    name: 'น้องฟิว', role: 'student', shirt: 0x6fa8dc, skin: 0xe8b98f,
+    name: 'น้องฟิว', role: 'student-boy', shirt: 0x6fa8dc, skin: 0xe8b98f, hair: 0x2c211d,
     route: [{ x: 1070, y: 590 }, { x: 1260, y: 590 }, { x: 1380, y: 720 }, { x: 1260, y: 590 }],
   },
   {
-    name: 'น้ำมนต์', role: 'student', shirt: 0x9b7ad6, skin: 0xf1c7a5,
+    name: 'น้ำมนต์', role: 'student-girl', shirt: 0x9b7ad6, skin: 0xf1c7a5, hair: 0x3b271f,
     route: [{ x: 520, y: 780 }, { x: 720, y: 780 }, { x: 850, y: 650 }, { x: 720, y: 780 }],
   },
   {
-    name: 'ลุงคำ', role: 'villager', shirt: 0x63a65f, skin: 0xd9a878,
+    name: 'ลุงคำ', role: 'villager', shirt: 0x63a65f, skin: 0xd9a878, hair: 0x655043,
     route: [{ x: 320, y: 690 }, { x: 500, y: 690 }, { x: 620, y: 830 }, { x: 500, y: 690 }],
   },
   {
-    name: 'ป้าดาว', role: 'villager', shirt: 0xd88952, skin: 0xe0ad82,
+    name: 'ป้าดาว', role: 'villager', shirt: 0xd88952, skin: 0xe0ad82, hair: 0x594036,
     route: [{ x: 1450, y: 640 }, { x: 1600, y: 640 }, { x: 1680, y: 810 }, { x: 1530, y: 810 }],
   },
   {
-    name: 'น้องมิน', role: 'student', shirt: 0x56b9b0, skin: 0xf0c39c,
+    name: 'น้องมิน', role: 'student-girl', shirt: 0x56b9b0, skin: 0xf0c39c, hair: 0x2f241f,
     route: [{ x: 870, y: 850 }, { x: 1060, y: 850 }, { x: 1170, y: 750 }, { x: 1060, y: 850 }],
   },
 ];
 
+function addRoundedBody(scene, x, y, width, height, radius, color) {
+  if (scene.add.roundedRect) return scene.add.roundedRect(x, y, width, height, radius, color);
+  return scene.add.rectangle(x, y, width, height, color);
+}
+
 function createPerson(scene, definition, index) {
   const start = definition.route[0];
   const container = scene.add.container(start.x, start.y).setDepth(58 + index);
-  const shadow = scene.add.ellipse(0, 29, 33, 10, 0x173726, 0.28);
-  const legs = scene.add.rectangle(0, 18, 18, 22, 0x31455f).setOrigin(0.5);
-  const body = scene.add.roundedRect
-    ? scene.add.roundedRect(0, 2, 28, 31, 7, definition.shirt)
-    : scene.add.rectangle(0, 2, 28, 31, definition.shirt);
-  const head = scene.add.circle(0, -21, 12, definition.skin);
-  const hair = scene.add.arc(0, -25, 12, 180, 360, false, definition.role === 'student' ? 0x3a2a22 : 0x5a4434);
-  const eyeLeft = scene.add.circle(-4, -20, 1.4, 0x2c2622);
-  const eyeRight = scene.add.circle(4, -20, 1.4, 0x2c2622);
-  container.add([shadow, legs, body, head, hair, eyeLeft, eyeRight]);
+  const isStudent = definition.role.startsWith('student');
+  const isGirl = definition.role === 'student-girl';
 
-  const label = scene.add.text(0, -48, definition.name, {
+  const shadow = scene.add.ellipse(0, 31, 37, 11, 0x173726, 0.3);
+  const leftLeg = scene.add.rectangle(-5, 20, 8, 20, isStudent ? 0x243b58 : 0x3d4b4c).setOrigin(0.5);
+  const rightLeg = scene.add.rectangle(5, 20, 8, 20, isStudent ? 0x243b58 : 0x3d4b4c).setOrigin(0.5);
+  const leftShoe = scene.add.ellipse(-5, 30, 11, 6, 0x2a211d);
+  const rightShoe = scene.add.ellipse(5, 30, 11, 6, 0x2a211d);
+  const body = addRoundedBody(scene, 0, 2, 30, 32, 7, definition.shirt);
+  const collarLeft = scene.add.triangle(-6, -8, -6, -5, 0, 4, 6, -5, 0xffffff, 0.92);
+  const collarRight = scene.add.triangle(6, -8, -6, -5, 0, 4, 6, -5, 0xffffff, 0.92).setFlipX(true);
+  const badge = scene.add.circle(9, 1, 3, isStudent ? 0xffd35a : 0xf2e1b2).setStrokeStyle(1, 0x5b462f);
+  const head = scene.add.circle(0, -22, 13, definition.skin).setStrokeStyle(1, 0x9f7558, 0.45);
+  const hair = scene.add.arc(0, -26, 13, 180, 360, false, definition.hair);
+  const fringe = scene.add.rectangle(0, -31, isGirl ? 21 : 17, 6, definition.hair).setAngle(isGirl ? -3 : 3);
+  const eyeLeft = scene.add.circle(-4, -21, 1.5, 0x2c2622);
+  const eyeRight = scene.add.circle(4, -21, 1.5, 0x2c2622);
+  const smile = scene.add.arc(0, -17, 4, 20, 160, false, 0x7d493d).setStrokeStyle(1, 0x7d493d);
+
+  container.add([
+    shadow, leftLeg, rightLeg, leftShoe, rightShoe, body,
+    collarLeft, collarRight, badge, head, hair, fringe, eyeLeft, eyeRight, smile,
+  ]);
+
+  if (isGirl) {
+    const ponyLeft = scene.add.circle(-13, -27, 5, definition.hair);
+    const ponyRight = scene.add.circle(13, -27, 5, definition.hair);
+    container.add([ponyLeft, ponyRight]);
+  }
+
+  const label = scene.add.text(0, -53, definition.name, {
     fontFamily: 'Tahoma', fontSize: '13px', color: '#fff9df',
-    backgroundColor: '#3c2c20', padding: { x: 5, y: 3 },
+    backgroundColor: '#3c2c20', padding: { x: 6, y: 3 },
+    stroke: '#1f1712', strokeThickness: 2,
   }).setOrigin(0.5);
   container.add(label);
 
+  const status = scene.add.circle(17, -43, 4, 0x68d391).setStrokeStyle(2, 0xffffff, 0.9);
+  container.add(status);
+
   container.setData('routeIndex', 0);
   container.setData('definition', definition);
+  container.setData('leftLeg', leftLeg);
+  container.setData('rightLeg', rightLeg);
+  container.setData('body', body);
+  container.setData('label', label);
   return container;
 }
 
@@ -62,9 +94,8 @@ function walkNext(scene, npc) {
   const duration = Math.max(1300, distance * 7.2);
 
   if (Math.abs(target.x - npc.x) > 5) npc.setScale(target.x < npc.x ? -1 : 1, 1);
-  npc.list.forEach((child) => {
-    if (child.type === 'Text') child.setScale(npc.scaleX < 0 ? -1 : 1, 1);
-  });
+  const label = npc.getData('label');
+  if (label) label.setScale(npc.scaleX < 0 ? -1 : 1, 1);
 
   scene.tweens.add({
     targets: npc,
@@ -72,15 +103,18 @@ function walkNext(scene, npc) {
     y: target.y,
     duration,
     ease: 'Sine.inOut',
-    onUpdate: (_tween, targetNpc) => {
-      const walking = Math.sin(scene.time.now / 95) * 2;
-      targetNpc.list[1].y = 18 + walking;
-      targetNpc.list[2].y = 2 - Math.abs(walking) * 0.35;
+    onUpdate: () => {
+      const step = Math.sin(scene.time.now / 90) * 2.4;
+      npc.getData('leftLeg').y = 20 + step;
+      npc.getData('rightLeg').y = 20 - step;
+      npc.getData('body').y = 2 - Math.abs(step) * 0.28;
     },
     onComplete: () => {
       npc.setData('routeIndex', nextIndex);
-      npc.list[1].y = 18;
-      npc.list[2].y = 2;
+      npc.getData('leftLeg').y = 20;
+      npc.getData('rightLeg').y = 20;
+      npc.getData('body').y = 2;
+      scene.tweens.add({ targets: npc, y: npc.y - 2, duration: 450, yoyo: true, repeat: 1 });
       scene.time.delayedCall(Phaser.Math.Between(900, 2400), () => walkNext(scene, npc));
     },
   });
@@ -112,7 +146,7 @@ function initializeLivingWorld(scene) {
     scene.time.delayedCall(500 + index * 380, () => walkNext(scene, npc));
   });
 
-  scene.add.text(18, 18, 'PHASE 3 • LIVING WORLD', {
+  scene.add.text(18, 18, 'PHASE 9.2 • CHARACTER REMASTER', {
     fontFamily: 'Tahoma', fontSize: '14px', color: '#fff4c8',
     backgroundColor: '#285247', padding: { x: 9, y: 6 },
   }).setScrollFactor(0).setDepth(420);
